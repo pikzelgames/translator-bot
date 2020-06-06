@@ -8,7 +8,7 @@ import string
 with open('credentials.json', 'r') as f:
     credentials = json.load(f)
 
-db = mysql.connector.connect(host='localhost', user='translatorbot', passwd=base64.b64decode(credentials['sql-pass']).decode('utf-8'), database='translatorbot')
+db = mysql.connector.connect(host='localhost', user='translatorbot', database='translatorbot')
 cursor = db.cursor()
 db.autocommit = True
 
@@ -40,7 +40,18 @@ async def on_message(message):
                         await message.channel.send('Incorrect number of arguments! This command should have exactly 0 arguments.')
                         return
                     else:
-                        pass # ADD HELP COMMAND LATER
+                        embed=discord.Embed(title='Translator Help', description=server_prefix + 'help')
+                        embed.add_field(name=f'{server_prefix}langcodes', value=f'Privately messages you the language codes required for {server_prefix}creategroup\nExample: {server_prefix}langcodes', inline=False)
+                        embed.add_field(name=f'{server_prefix}creategroup (#channels) (langcodes)', value=f'Creates a new group of channels\nExample: {server_prefix}creategroup #general-en #general-da en da', inline=False)
+                        embed.add_field(name=f'{server_prefix}deletegroup (group ID)', value=f'Deletes one or more existing groups\nExample: {server_prefix}deletegroup 1 3', inline=False)
+                        embed.add_field(name=f'{server_prefix}showgroups', value=f'Lists all existing groups and their respective channels\nExample: {server_prefix}showgroups', inline=False)
+                        embed.add_field(name=f'{server_prefix}blockuser (@users)', value=f'Adds one or more users to the blacklist\nExample: {server_prefix}blockuser @User1 @User2 @User3', inline=False)
+                        embed.add_field(name=f'{server_prefix}unblockuser (@users)', value=f'Removes one or move users from the blacklist\nExample: {server_prefix}unblockuser @User1 @User3', inline=False)
+                        embed.add_field(name=f'{server_prefix}showblacklist', value=f'Lists all users currently on the blacklist\nExample: {server_prefix}showblacklist', inline=False)
+                        embed.add_field(name=f'{server_prefix}blockword (words)', value=f'Adds one or more words to the blacklist\nExample: {server_prefix}blockword banana strawberry apple', inline=False)
+                        embed.add_field(name=f'{server_prefix}unblockword (words)', value=f'Removes one or more words from the blacklist\nExample: {server_prefix}unblockword apple strawberry', inline=False)
+                        embed.add_field(name=f'{server_prefix}showblockedwords', value=f'Lists all words currently on the blacklist\nExample: {server_prefix}showblockedwords', inline=False)
+                        await message.channel.send(embed=embed)
                 elif split[0][len(server_prefix):] == 'prefix':
                     if not message.author.guild_permissions.manage_guild:
                         await message.channel.send('You need to have the **Manage Server** permission to do that!')
@@ -69,13 +80,6 @@ async def on_message(message):
                         await message.author.create_dm()
 
                     await message.author.dm_channel.send('```Available language codes:\n' + '\n'.join([k.capitalize() + ': ' + v for k, v in googletrans.LANGCODES.items()]) + '```')
-                elif split[0][len(server_prefix):] == 'dbcommit':
-                    if not message.author.guild_permissions.manage_guild:
-                        await message.channel.send('You need to have the **Manage Server** permission to do that!')
-                        return
-                    else:
-                        db.commit()
-                        await message.channel.send('Successfully refreshed the database!')
                 elif split[0][len(server_prefix):] == 'creategroup':
                     if not message.author.guild_permissions.manage_guild:
                         await message.channel.send('You need to have the **Manage Server** permission to do that!')
@@ -294,7 +298,7 @@ async def on_message(message):
                                 embed.add_field(name=translator.translate('Source language:', src='en', dest=l).text + ' ' + translator.translate(googletrans.LANGUAGES[source_lang], src='en', dest=l).text, \
                                     value=translator.translate(message.clean_content, src=source_lang, dest=l).text, inline=False)
                                 embed.set_footer(text=message.created_at.strftime('%H:%M %d/%m/%Y'))
-                                await message.guild.get_channel(c).send(embed=embed)
+                                await message.guild.get_channel(c).send(''.join([x.mention for x in message.mentions]), embed=embed)
 
 @client.event
 async def on_guild_join(guild):
