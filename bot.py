@@ -4,6 +4,8 @@ import json
 import mysql.connector
 import googletrans
 import string
+import io
+import aiohttp
 
 with open('credentials.json', 'r') as f:
     credentials = json.load(f)
@@ -293,13 +295,43 @@ async def on_message(message):
                                 dest_info = list(zip(dest_channels, dest_langs))
 
                                 for c, l in dest_info:
+                                    forward = ''
+                                    if message.mentions != None:
+                                        forward += ' '.join([x.mention for x in message.mentions])
+                                    if message.role_mentions != None:
+                                        forward += ' '.join([x.mention for x in message.role_mentions])
+                                    if message.channel_mentions != None:
+                                        forward += ' '.join([x.mention for x in message.channel_mentions])
+                                    
+                                    attachment = ''
+                                    if message.embeds != None:
+                                        attachment += ' '.join([x.url for x in message.embeds])
+                                    if message.attachments != None:
+                                        attachment += ' '.join([x.url for x in message.attachments])
+
+                                    if message.clean_content not in [None, '']:
+                                        message_text = message.clean_content
+                                    else:
+                                        message_text = '[No text]'
+
                                     embed = discord.Embed(title=translator.translate('New message in #', src='en', dest=l).text + \
                                         message.channel.name + ((' (' + message.channel.category.name + ')') if message.channel.category != None else ''), color=message.author.color.value)
                                     embed.set_author(name=message.author.name, icon_url=message.author.avatar_url)
                                     embed.add_field(name=translator.translate('Source language:', src='en', dest=l).text + ' ' + translator.translate(googletrans.LANGUAGES[source_lang], src='en', dest=l).text, \
-                                        value=translator.translate(message.clean_content, src=source_lang, dest=l).text, inline=False)
+                                        value=translator.translate(message_text, src=source_lang, dest=l).text, inline=False)
                                     embed.set_footer(text=message.created_at.strftime('%H:%M %d/%m/%Y'))
-                                    await message.guild.get_channel(c).send(' '.join([x.mention for x in message.mentions + message.role_mentions + message.channel_mentions] + [x.url for x in message.attachments]), embed=embed)
+
+                                    if attachment != '':
+                                        async with aiohttp.ClientSession() as session:
+                                            async with session.get(attachment) as resp:
+                                                if resp.status != 200:
+                                                    return await channel.send('Could not download file...')
+                                                data = io.BytesIO(await resp.read())
+                                                await message.guild.get_channel(c).send(forward, \
+                                                    file=discord.File(data, [x for x in attachment.split('/') if x != ''][-1]), embed=embed)
+                                    else:
+                                        await message.guild.get_channel(c).send(forward, \
+                                                    embed=embed)
     except Exception as e:
         print(e)
 
