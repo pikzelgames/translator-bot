@@ -335,6 +335,11 @@ async def on_message(message):
     except Exception as e:
         print(e)
 
+        user = await client.get_user(299591245976829952)
+        if user.dm_channel == None:
+            await user.create_dm()
+        await user.dm_channel.send('Exception occurred: ' + str(e))
+
 @client.event
 async def on_guild_join(guild):
     if len(query_db(f'SELECT * FROM serversettings WHERE serverid = "{guild.id}"')) > 0:
