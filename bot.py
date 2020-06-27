@@ -23,6 +23,10 @@ translator = googletrans.Translator()
 client = discord.Client()
 
 @client.event
+async def on_ready():
+    print('Logged in as ' + client.user.name + ' (' + str(client.user.id) + ')')
+
+@client.event
 async def on_message(message):
     try:
         if message.author.bot == True:
